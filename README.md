@@ -64,6 +64,12 @@ frame on screen. Test runs belong on a fresh `RECOMP_SAVE_DIR`.
 - **Data sections** (`config/sections/`): the online and overlay data
   sections are not code.
 - **Seeds** (`config/seeds/`): functions the disassembler cannot find on its own.
+- **Widescreen at the camera** (`src/recomp_manual.c`, `sub_0001D400`): the
+  game's camera keeps an aspect ratio, 4/3, from which both its projection
+  and its visibility test come. In widescreen it is given 16/9, so players at
+  the sides are drawn rather than popping in at the old 4:3 edge, and the
+  renderer's register scaling stands aside. `RECOMP_PES5_WIDE=0` goes back
+  to the register scaling below.
 - **Widescreen declaration.** `recomp_title_widescreen(HOR_PLUS REGISTER 154)`:
   world draws project through one screen-space matrix at c154..c157, whose x
   and y rows are in the ratio 240:224 (a 4:3 projection on the game's

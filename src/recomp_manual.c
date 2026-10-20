@@ -427,3 +427,61 @@ void recomp_icall_not_code_log(uint32_t va, uint32_t saved_esp)
     fflush(stderr);
 }
 
+
+/* ── PES5: widescreen at the camera ─────────────────────────── */
+
+/*
+ * The game's camera keeps an aspect ratio (0x007DE584, set by sub_0001D400,
+ * which also raises the camera's changed flag at 0x007DE830). Both of the
+ * camera set-ups hand it 4/3, and the projection and the visibility test
+ * that decides which players and objects are drawn both come from it.
+ *
+ * Widening the projection register alone (c154, the renderer's Hor+) left
+ * the visibility test at 4:3: a player in the widened strips at either side
+ * was not drawn until he walked into the old 4:3 view, and popped in at its
+ * edge. So with widescreen on, the camera itself is given the wider aspect:
+ * 4/3 divided by the toolkit's Hor+ factor (0.75), i.e. 16/9, and the claim
+ * tells the renderer the title now widens its own camera, so c154 is left as
+ * uploaded. The HUD is still kept at 4:3 by the renderer's 2D rules.
+ *
+ * RECOMP_PES5_WIDE=0 goes back to the renderer's register scaling.
+ */
+extern void sub_0001D400_gen(void);
+float xbox_D3D8ClaimHorPlus(void);
+int xbox_EnvSwitch(const char *name, int default_on);
+#define PES_MEM32(va) (*(volatile uint32_t *)((uintptr_t)(uint32_t)(va) + g_xbox_mem_offset))
+
+void sub_0001D400(void)
+{
+    static float factor = -1.0f;
+    uint32_t bits = PES_MEM32(g_esp + 4);
+    float aspect, wide;
+
+    if (factor < 0.0f) {
+        factor = xbox_EnvSwitch("RECOMP_PES5_WIDE", 1) ? xbox_D3D8ClaimHorPlus() : 1.0f;
+        if (!(factor > 0.0f && factor <= 1.0f))
+            factor = 1.0f;
+    }
+    if (factor == 1.0f) {
+        sub_0001D400_gen();
+        return;
+    }
+    memcpy(&aspect, &bits, sizeof aspect);
+    wide = aspect / factor;
+    {
+        uint32_t wb;
+        memcpy(&wb, &wide, sizeof wb);
+        PES_MEM32(g_esp + 4) = wb;
+        sub_0001D400_gen();
+        PES_MEM32(g_esp + 4) = bits;
+    }
+    {
+        static int said;
+        if (!said++) {
+            fprintf(stderr, "[PES5] widescreen: the camera's aspect %.4f -> %.4f "
+                            "(the game's own projection and culling widen)\n",
+                    (double)aspect, (double)wide);
+            fflush(stderr);
+        }
+    }
+}
