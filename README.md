@@ -11,7 +11,21 @@ copy of the disc you own.
 
 ## Current State
 
-Bring-up in progress.
+Runs on macOS (Apple Silicon) from boot into matches: the Konami, JFA and
+adidas screens, the intro movie, the title screen, option-file creation and
+saving, the main menu, Match mode (team and kit select, match settings,
+formation) and the match itself -- walk-out, kick-off, play, replays -- at
+60 fps with sound. Six minutes into a match with no crash.
+
+- **60 fps, natively.** The game asks for a 60 Hz mode with a presentation
+  interval of one, and presents one frame per vblank in a match (59.7-59.9
+  fps measured). Its match clock runs at the configured match length.
+- **Widescreen** (`widescreen = 1`, launcher or `RECOMP_WIDESCREEN=1`).
+  PES5 has no 16:9 mode, so its camera is widened (Hor+, below). The HUD
+  stays 4:3 in the middle; full-screen menu backdrops fill the width.
+
+Not yet checked: the other modes (Master League, League, Cup, Training,
+Edit), online (XBOX LIVE), and how it sounds by ear.
 
 ## Building
 
@@ -50,3 +64,15 @@ frame on screen. Test runs belong on a fresh `RECOMP_SAVE_DIR`.
 - **Data sections** (`config/sections/`): the online and overlay data
   sections are not code.
 - **Seeds** (`config/seeds/`): functions the disassembler cannot find on its own.
+- **Widescreen declaration.** `recomp_title_widescreen(HOR_PLUS REGISTER 154)`:
+  world draws project through one screen-space matrix at c154..c157, whose x
+  and y rows are in the ratio 240:224 (a 4:3 projection on the game's
+  640x448 viewport), so 0.75 on c154 widens the view to 16:9. The game
+  renders its match into a 640x448 texture and composites it onto the
+  screen; the toolkit treats that texture as the screen.
+
+The toolkit fixes this game needed (on `title/pes5-play`): jump tables read
+to their bounds check (a 1007-case switch), `IDirectSound::SynchPlayback`,
+an interlaced display field that alternates, one-operand `mul`/`imul` at the
+operand's width (115 byte-wide sites here; one zeroed libpng's image height
+and corrupted the heap), and the scene-texture rules for widescreen.
