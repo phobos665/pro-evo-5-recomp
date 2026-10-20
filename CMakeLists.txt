@@ -170,6 +170,13 @@ endif()
 # )
 
 
+# PES5 has no 16:9 mode: it never reads the console's video flags and draws
+# 4:3 whatever the setting. Its world draws project through one combined,
+# screen-space matrix at c154..c157 (x row c154, y row c155, z c156, w c157).
+# The x and y rows' lengths are 240:224 -- a 4:3 projection on its 640x448
+# viewport -- so 0.75 on c154 alone widens the camera to 16:9 (Hor+).
+recomp_title_widescreen(HOR_PLUS REGISTER 154)
+
 # The launcher (the toolkit's src/launcher): the settings worth choosing,
 # written to the file the game reads, then the game started. Beside the
 # game's executable, as pes5_launcher.
